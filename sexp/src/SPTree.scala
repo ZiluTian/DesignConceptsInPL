@@ -10,21 +10,38 @@ trait SPTree {
 }
 
 // Leaves
-case class SymbolicToken(x: String) extends SPTree {
-    override def toString(): String = x
+class SymbolicToken extends SPTree {
+    var value: String = ""
+    override def toString(): String = value
 
     override def accept(visitor: SPTreeVisitor): Unit = {
         visitor.visit(this)
     }
 }
 
+object SymbolicToken {
+    def apply(x: String): SymbolicToken = {
+        val t = new SymbolicToken()
+        t.value = x
+        t
+    }
+}
 // Intermediate node is a pair of parentheses surrounding s-expressions that represent the subtrees
-case class INode(x: List[SPTree]) extends SPTree {
-    override def toString(): String = x.toString
+class INode extends SPTree {
+    var children: List[SPTree] = List()
+    override def toString(): String = children.toString
 
     override def accept(visitor: SPTreeVisitor): Unit = {
         visitor.visit(this)
-        x.foreach(i => i.accept(visitor))
+        children.foreach(i => i.accept(visitor))
+    }
+}
+
+object INode {
+    def apply(x: List[SPTree]): INode = {
+        val i = new INode()
+        i.children = x
+        i
     }
 }
 

@@ -13,12 +13,13 @@ class SParser extends RegexParsers {
   // An executable sequence is a single command, written as a paranthesized list of subcommands separated by whitespace, could be empty subcommand
   def iNode: Parser[INode] =
     "(" ~ rep(token | iNode) ~ ")" ^^ {
-      case a ~ b ~ c => INode(b)
+      case a ~ b ~ c =>
+          INode(b)
     }
 }
 
 object SExpression extends SParser{
-    def apply(input: String): Option[INode] = {
+    def apply(input: String): Option[SPTree] = {
         parse(iNode, input) match {
             case Success(i, _) => {
               Some(i)

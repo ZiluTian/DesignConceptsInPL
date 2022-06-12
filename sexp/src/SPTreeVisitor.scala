@@ -18,7 +18,7 @@ class PrintTree extends SPTreeVisitor {
             case token: SymbolicToken => println(f"$indentation(SToken $t)")
             case iNode: INode => {
                 println(f"${indentation}INode")
-                depth.prependAll((1 to iNode.x.length).map(_ => current_depth + 1))
+                depth.prependAll((1 to iNode.children.length).map(_ => current_depth + 1))
                 if (current_depth+1 > max_height) {
                     max_height = current_depth + 1
                 }
