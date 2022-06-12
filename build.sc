@@ -13,6 +13,8 @@ trait DSL extends ScalaModule{
 }
 
 object postfix extends DSL
-
-object sexp extends DSL 
+object sexp extends DSL
+object el extends DSL {
+  def moduleDeps = Seq(sexp)
+}
 
