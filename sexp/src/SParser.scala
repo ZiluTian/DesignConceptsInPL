@@ -17,9 +17,9 @@ class SParser extends RegexParsers {
     }
 }
 
-class SExpression(input: String) extends SParser{
+object SExpression extends SParser{
 
-    def run(): Option[INode] = {
+    def apply(input: String): Option[INode] = {
         parse(iNode, input) match {
             case Success(i, _) => {
               Some(i)
