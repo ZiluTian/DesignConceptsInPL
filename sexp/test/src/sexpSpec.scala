@@ -15,6 +15,16 @@ class SPTreeSpec extends AnyFlatSpecLike {
         assert(printTree.max_height == 3)
     }
 
+    "The show extension for INode" should "print out a tree on stdout" in {
+        val ex = SExpression("(if (= (arg 1) 3) (arg 2) 4)") 
+        assert(ex.isDefined)
+        ex.get.show()
+        val ex2 = SExpression("(cond ((and (> (arg 1) 1) (< (arg 1) 10)) 0) (else (* (arg 2) (arg 3))))")
+        assert(ex2.isDefined)
+        ex2.get.show()
+
+    }
+
     "Imbalanced parantheses in S-expressions" should "fail" in {
         assert(!SExpression("((this is an ((example) (s-expression tree)))").isDefined)
     }

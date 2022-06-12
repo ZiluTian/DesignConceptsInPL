@@ -18,7 +18,6 @@ class SParser extends RegexParsers {
 }
 
 object SExpression extends SParser{
-
     def apply(input: String): Option[INode] = {
         parse(iNode, input) match {
             case Success(i, _) => {
