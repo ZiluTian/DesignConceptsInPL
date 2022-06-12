@@ -17,12 +17,14 @@ The semantics of a PostFix program is determined by executing its commands in le
 - An inapproriate stack of values is encountered or insufficient number of arguments
 - The number of program parameter is inconsistent with the number of arguments
 
+<img src="fig/postfix-semantics.png" width=300 />
+
 Every PostFix program is guaranteed to terminate. Thus it is not universal. To run test: `mill postfix.test`. 
 
 ## S-Expression
 A symbolic expression is a notation for representing trees by paranthesized linear text strings. A symbolic token is (approximation) any sequence of characters that does not contain a left or right parenthesis or whitesapce. An intermediate node is a pair of parenthesis surrounding the s-expression that represents the subtree.
 
-A *syntactic domain* is a collection of program phrases. Primitive syntactic domains are collections of phrases with no substructure. A *production rule* specifies the structure of compound syntactic domains. 
+A *syntactic domain* is a collection of program phrases. Primitive syntactic domains are collections of phrases with no substructure. A *production rule* specifies the structure of compound syntactic domains.
 - Structure of S-Expression grammar
   - A list of syntactic domain, one for each kind of phrase (in EL mini-lang).
   - A set of production rules that define the structure of compound phrases
@@ -35,3 +37,7 @@ domain-variable ::= pattern [phrase-type]
                 | pattern [phrase-type]
 ```
 For test, `mill sexp.test`
+
+As an example, see `EL/` for describing the syntax of EL language using S-expression. `mill el.test`
+
+<img src="fig/EL-sexp.png" width=250 />
