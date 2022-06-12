@@ -28,7 +28,7 @@ case class INode(x: List[SPTree]) extends SPTree {
     }
 }
 
-extension (c: INode)
+extension (c: SPTree)
     def show(): Unit = {
         val printTree = new PrintTree()
         c.accept(printTree)
