@@ -1,13 +1,10 @@
-package postfix
+package DSL.postfix
 
 import scala.util.parsing.combinator._
 
 class PostFixLexer extends RegexParsers {
   override val whiteSpace = "[ \t\r\f\n]+".r
   override def skipWhitespace = true
-
-  def lparen: Parser[CommandToken] = "(" ^^ { _ => LPAREN }
-  def rparen: Parser[CommandToken] = ")" ^^ { _ => RPAREN }
 
   def naturalNumber: Parser[CommandToken] = """(0|[1-9]\d*)""".r ^^ {n =>
     INTEGER(n.toInt)
@@ -35,13 +32,13 @@ class PostFixLexer extends RegexParsers {
 
   // An executable sequence is a single command, written as a paranthesized list of subcommands separated by whitespace, could be empty subcommand
   def executableSeq: Parser[CommandToken] =
-    lparen ~ rep(command | integerNumber | executableSeq) ~ rparen ^^ {
+    "(" ~ rep(command | integerNumber | executableSeq) ~ ")" ^^ {
       case a ~ b ~ c => EXECUTABLE(b)
     }
 
   // A PostFix program is a parenthesized seq. consisting of the token postfix, followed by a natural naturalNumber, and zero or more commands
   def program: Parser[(CommandToken, List[CommandToken])] =
-    lparen ~ "postfix" ~ naturalNumber ~ rep(command | integerNumber | executableSeq) ~ rparen ^^ {
+    "(" ~ "postfix" ~ naturalNumber ~ rep(command | integerNumber | executableSeq) ~ ")" ^^ {
       case a ~ b ~ c ~ d ~ e => (c, d)
     }
 }

@@ -1,6 +1,6 @@
 import mill._, scalalib._
 
-object postfix extends ScalaModule {
+trait DSL extends ScalaModule{
   def scalaVersion = "3.1.2"
 
   def ivyDeps = Agg(
@@ -11,3 +11,8 @@ object postfix extends ScalaModule {
     def ivyDeps = Agg(ivy"org.scalatest::scalatest:3.2.12")
   }
 }
+
+object postfix extends DSL
+
+object sexp extends DSL 
+

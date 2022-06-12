@@ -1,4 +1,4 @@
-package postfix
+package DSL.postfix
 
 sealed trait CommandToken {
     def run(stack: CommandTokenStack): Option[Unit] = {
@@ -129,9 +129,6 @@ case object EXEC extends CommandToken {
 
     override def runTimeInstructions(): List[CommandToken] = prependInstructions
 }
-
-case object LPAREN extends CommandToken
-case object RPAREN extends CommandToken
 
 case class EXECUTABLE(seq: List[CommandToken]) extends CommandToken
 
