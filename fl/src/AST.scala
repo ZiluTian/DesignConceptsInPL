@@ -24,9 +24,12 @@ import DSL.sexp._
 // tagless multi-application, list, quote, cond, scand, scor, let, letrec,
 // recur, and top-level def definitions.
 
-sealed trait FL extends SPTree
+// (Deliberately not sealed: the stateful dialects FLIC and FLAVAR introduce
+// new expression and value types that mix with these — see DSL.flic and
+// DSL.flavar.)
+trait FL extends SPTree
 
-sealed trait Exp extends FL
+trait Exp extends FL
 
 // ---------------------------------------------------------------------------
 // Literals and leaves

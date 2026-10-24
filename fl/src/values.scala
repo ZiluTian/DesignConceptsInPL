@@ -8,7 +8,11 @@ package DSL.fl
 //   sym(...)    a symbol
 //   procedure   a (first-class) procedure: a closure or a recursive closure
 //   (a, b)      a pair
-sealed trait Value
+//
+// Value is (deliberately) not sealed: stateful extensions of FL (FLIC adds
+// mutable cells, FLAVAR adds mutable-variable closures) introduce new value
+// types that mix with these.
+trait Value
 
 case object UnitValue extends Value
 final case class BoolValue(b: Boolean) extends Value
@@ -18,7 +22,10 @@ final case class SymValue(s: String) extends Value
 // A procedure is a first-class value. FLK abstractions have exactly one formal
 // parameter; RecClosure is the value produced by the kernel (rec ...) form and
 // supports self-reference for recursion.
-sealed trait Proc extends Value
+//
+// (Not sealed: FLAVAR introduces its own closure types, which capture a
+// mutable-variable environment.)
+trait Proc extends Value
 final case class Closure(formal: String, body: Exp, env: Env) extends Proc
 final case class RecClosure(name: String, body: Exp, env: Env) extends Proc
 
@@ -53,5 +60,6 @@ object FLValue {
         case SymValue(s)       => s"sym($s)"
         case _: Proc           => "<procedure>"
         case PairValue(f, s)   => s"(${show(f)}, ${show(s)})"
+        case other             => other.toString
     }
 }
