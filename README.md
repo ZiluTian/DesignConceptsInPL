@@ -32,7 +32,7 @@ Built with [Mill](https://mill.build) (pinned in [`.mill-version`](.mill-version
 | [`flex/`](flex/)    | FLEX | FL with **explicit types** (+ type checker) | §11.4, §11.8 | ✅ |
 | [`flex_s/`](flex_s/) | FLEX/S | FLEX with **subtyping** | §12.1 | ✅ |
 | [`flex_sp/`](flex_sp/) | FLEX/SP | FLEX/S with **polymorphism** | §12.2 | ✅ |
-| [`flex_p/`](flex_p/) | FLEX/P | FLEX with **polymorphism** | §12.2 | ○ |
+| [`flex_p/`](flex_p/) | FLEX/P | FLEX with **polymorphism** | §12.2 | ✅ |
 | [`flex_spd/`](flex_spd/) | FLEX/SPD | FLEX/SP with **descriptions** | §12.3.1 | ○ |
 | [`flex_spdk/`](flex_spdk/) | FLEX/SPDK | FLEX/SPD with **kinds** | §12.3.2 | ○ |
 | [`flex_m/`](flex_m/) | FLEX/M | FLEX/SP with **modules** | §15.2 | ○ |
