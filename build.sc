@@ -38,4 +38,7 @@ object hooPla extends DSL {
 object flex extends DSL {
   def moduleDeps = Seq(sexp, fl)
 }
+object flex_s extends DSL {
+  def moduleDeps = Seq(sexp, fl, flex)
+}
 
