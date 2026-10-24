@@ -1,43 +1,97 @@
-This project implements mini-languages mentioned in the book *Design Concepts in Programming Languages* using Scala3 and mill.
+# Design Concepts in Programming Languages — Mini-Language Implementations
 
-## PostFix: A simple stack language
-The basic syntactic unit of a PostFix program is the *command*. Commands are of the following form:
-- Any integer numeral
-- Special command tokens: add, div, eq, exec, gt, lt, mul, nget, pop, rem, sel, sub, swap
-- An executable sequence: a single command that serves as a subroutine. Written as a parenthesized list of subcommands separated by whitespaces
+Reference implementations, in **Scala 3**, of the family of pedagogical
+mini-languages used in
 
-A PostFix *program* is a parenthesized sequence consisting of 
-- The token postfix
-- a natural number indicating the number of program parameters
-- one or more commands
+> **Franklyn Turbak & David Gifford** (with Mark A. Sheldon),
+> *Design Concepts in Programming Languages*, The MIT Press, 2008.
+> ISBN 978-0-262-20175-9. (The textbook for MIT 6.821, *Programming Languages*.)
 
-The semantics of a PostFix program is determined by executing its commands in left-to-right order. Each command manipulates an implicit stack of values that initially contains arguments, which are integer numeral. The first argument is at the top of the stack. A program signals an error if 
-- Final stack is empty
-- Value at the top of the final stack is not an integer
-- An inapproriate stack of values is encountered or insufficient number of arguments
-- The number of program parameter is inconsistent with the number of arguments
+The book teaches the core ideas of programming-language design with a family of
+syntactically simple, s-expression-based languages that build on one another.
+This repository implements that family — **one language per directory** — each
+with a parser (concrete syntax → abstract syntax), a **reference operational
+semantics** (an evaluator, or a type checker where the language is typed), and
+a ScalaTest suite.
 
-<img src="fig/postfix-semantics.png" width=300 />
+Built with [Mill](https://mill.build) (pinned in [`.mill-version`](.mill-version)).
 
-Every PostFix program is guaranteed to terminate. Thus it is not universal. To run test: `mill postfix.test`. 
+## The language family
 
-## S-Expression
-A symbolic expression is a notation for representing trees by paranthesized linear text strings. A symbolic token is (approximation) any sequence of characters that does not contain a left or right parenthesis or whitesapce. An intermediate node is a pair of parenthesis surrounding the s-expression that represents the subtree.
+| Directory | Language | Role / mnemonic | Defined in the book | Status |
+|-----------|----------|-----------------|---------------------|:------:|
+| [`sexp/`](sexp/)    | S‑Expression | s‑expression AST + parser — the foundation | Ch. 2 | ✅ |
+| [`postfix/`](postfix/) | PostFix | a simple stack language | §1.4 | ✅ |
+| [`el/`](el/)        | EL | Expression Language | §2.1, §4.2 | ✅ |
+| [`elmm/`](elmm/)    | ELMM | EL Minus Minus — the most restricted EL stage | §3.2.6, §4.2.3 | ○ |
+| [`elm/`](elm/)      | ELM | EL Minus — a restricted EL | §3.2.5, §4.2.2 | ○ |
+| [`fl/`](fl/)        | FL | Functional Language (kernel **FLK** + sugar + library) | Ch. 6 | ○ |
+| [`flic/`](flic/)    | FLIC | FL with mutable **cells** | §8.3 | ○ |
+| [`flavar/`](flavar/) | FLAVAR | FL with mutable **variables** | §8.4 | ○ |
+| [`hooPla/`](hooPla/) | HOOPLA | Humble Object‑Oriented PL (kernel **HOOK**) | §7.3 | ○ |
+| [`flex/`](flex/)    | FLEX | FL with **explicit types** (+ type checker) | §11.4, §11.8 | ○ |
+| [`flex_s/`](flex_s/) | FLEX/S | FLEX with **subtyping** | §12.1 | ○ |
+| [`flex_sp/`](flex_sp/) | FLEX/SP | FLEX/S with **polymorphism** | §12.2 | ○ |
+| [`flex_p/`](flex_p/) | FLEX/P | FLEX with **polymorphism** | §12.2 | ○ |
+| [`flex_spd/`](flex_spd/) | FLEX/SPD | FLEX/SP with **descriptions** | §12.3.1 | ○ |
+| [`flex_spdk/`](flex_spdk/) | FLEX/SPDK | FLEX/SPD with **kinds** | §12.3.2 | ○ |
+| [`flex_m/`](flex_m/) | FLEX/M | FLEX/SP with **modules** | §15.2 | ○ |
+| [`flare/`](flare/)  | FLARE | FL with type **reconstruction** (inference) | §13.2, §13.5 | ○ |
+| [`flare_e/`](flare_e/) | FLARE/E | FLARE with **effects** | §16.2 | ○ |
+| [`flare_v/`](flare_v/) | FLARE/V | FLARE with mutable **variables** | §17.2.2 | ○ |
+| [`fil/`](fil/)      | FIL | Functional Intermediate Language (compilation) | §17.7 | ○ |
 
-A *syntactic domain* is a collection of program phrases. Primitive syntactic domains are collections of phrases with no substructure. A *production rule* specifies the structure of compound syntactic domains.
-- Structure of S-Expression grammar
-  - A list of syntactic domain, one for each kind of phrase (in EL mini-lang).
-  - A set of production rules that define the structure of compound phrases
+Legend: ✅ implemented · ○ planned. The progression follows the book: a
+syntactic foundation (`sexp`), an imperative‑flavored stack language
+(`postfix`) and an expression language (`el`) for the semantics chapters, a
+core functional language and its state/object‑oriented extensions (`fl`,
+`flic`, `flavar`, `hooPla`), a typed core and its static‑semantics extensions
+(`flex` family), a type‑inference core and its extensions (`flare` family), and
+finally a compilation intermediate language (`fil`).
 
-A *production rule* has following form. Each line of the rule is a *production*. *domain-variable* is the domain variable for the compound syntactic domain being defined. *pattern* is an s-expression pattern. *phrase-type* is a mnemonic name for the subclass of phrases in the domain that match the pattern. The phrase types correcpond to the labels of intermediate nodes of an AST.
+## Repository layout
+
+Each language is a self‑contained [Mill](https://mill.build) module:
+
 ```
-domain-variable ::= pattern [phrase-type]
-                | pattern [phrase-type]
-                ...
-                | pattern [phrase-type]
+<lang>/
+  README.md      # the language: concrete syntax, abstract syntax, semantics, examples
+  src/           # AST + parser (+ reference evaluator / type checker)
+  test/src/      # ScalaTest suite
 ```
-For test, `mill sexp.test`
 
-As an example, see `EL/` for describing the syntax of EL language using S-expression. `mill el.test`
+Conventions shared across the family (see [`sexp/`](sexp/) for the foundation):
 
-<img src="fig/EL-sexp.png" width=250 />
+- **Packages** are `DSL.<lang>`.
+- **AST nodes** extend the s‑expression base types from `DSL.sexp`
+  (`SPTree` → `SymbolicToken` for leaves, `INode` for interior nodes,
+  `PhraseTag` for keyword tokens), so every program can be printed as a tree.
+- **Parsers** use `scala-parser-combinators` (`RegexParsers`) and read the
+  book's s‑expression concrete syntax.
+- **Semantics** are given as a reference big‑step evaluator
+  (`… : Option[Result]`), where `None` signals a runtime error.
+- **Tests** use ScalaTest's `AnyFlatSpecLike` with small `should…` assertions.
+
+## Building & testing
+
+Prerequisites: JDK 17+ and internet access (Mill fetches the Scala 3.1.2
+compiler and libraries on first run).
+
+```bash
+# run every language's test suite
+mill __.test
+
+# run a single language's suite
+mill el.test
+mill fl.test
+
+# compile only
+mill __.compile
+```
+
+Mill's version is pinned in [`.mill-version`](.mill-version); any Mill launcher
+honors it.
+
+## License
+
+[MIT](LICENSE).

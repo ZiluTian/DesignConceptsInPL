@@ -14,7 +14,7 @@ class ElLexer extends RegexParsers {
     IntLit(n.toInt)
   }
 
-  def arithmeticOperator: Parser[ArithmeticOperator] = """([\\+\\-\\*\\/\\%])""".r ^^ {
+  def arithmeticOperator: Parser[ArithmeticOperator] = """([+\-*/%])""".r ^^ {
     case "+" => ADD
     case "-" => SUB
     case "*" => MULT

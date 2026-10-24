@@ -1,5 +1,17 @@
-.vscode
-.metals
-.bloop
-**/out/*
-target/**
+# Mill build output
+out/
+**/out/
+target/
+
+# IDE / tooling
+.vscode/
+.idea/
+.metals/
+.bloop/
+*.iml
+
+# OS noise
+.DS_Store
+
+# Scratch
+*.log
