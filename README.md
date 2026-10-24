@@ -29,7 +29,7 @@ Built with [Mill](https://mill.build) (pinned in [`.mill-version`](.mill-version
 | [`flic/`](flic/)    | FLIC | FL with mutable **cells** | §8.3 | ✅ |
 | [`flavar/`](flavar/) | FLAVAR | FL with mutable **variables** | §8.4 | ✅ |
 | [`hooPla/`](hooPla/) | HOOPLA | Humble Object‑Oriented PL (kernel **HOOK**) | §7.3 | ✅ |
-| [`flex/`](flex/)    | FLEX | FL with **explicit types** (+ type checker) | §11.4, §11.8 | ○ |
+| [`flex/`](flex/)    | FLEX | FL with **explicit types** (+ type checker) | §11.4, §11.8 | ✅ |
 | [`flex_s/`](flex_s/) | FLEX/S | FLEX with **subtyping** | §12.1 | ○ |
 | [`flex_sp/`](flex_sp/) | FLEX/SP | FLEX/S with **polymorphism** | §12.2 | ○ |
 | [`flex_p/`](flex_p/) | FLEX/P | FLEX with **polymorphism** | §12.2 | ○ |
