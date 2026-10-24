@@ -15,3 +15,7 @@ target/
 
 # Scratch
 *.log
+
+# CI workflow kept locally until a token with the `workflow` scope (or the
+# GitHub web UI) can push it; see the note in the top-level README.
+.github/workflows/ci.yml

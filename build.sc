@@ -17,4 +17,10 @@ object sexp extends DSL
 object el extends DSL {
   def moduleDeps = Seq(sexp)
 }
+object elmm extends DSL {
+  def moduleDeps = Seq(sexp)
+}
+object elm extends DSL {
+  def moduleDeps = Seq(sexp)
+}
 

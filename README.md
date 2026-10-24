@@ -23,8 +23,8 @@ Built with [Mill](https://mill.build) (pinned in [`.mill-version`](.mill-version
 | [`sexp/`](sexp/)    | S‑Expression | s‑expression AST + parser — the foundation | Ch. 2 | ✅ |
 | [`postfix/`](postfix/) | PostFix | a simple stack language | §1.4 | ✅ |
 | [`el/`](el/)        | EL | Expression Language | §2.1, §4.2 | ✅ |
-| [`elmm/`](elmm/)    | ELMM | EL Minus Minus — the most restricted EL stage | §3.2.6, §4.2.3 | ○ |
-| [`elm/`](elm/)      | ELM | EL Minus — a restricted EL | §3.2.5, §4.2.2 | ○ |
+| [`elmm/`](elmm/)    | ELMM | EL Minus Minus — the most restricted EL stage | §3.2.6, §4.2.3 | ✅ |
+| [`elm/`](elm/)      | ELM | EL Minus — a restricted EL | §3.2.5, §4.2.2 | ✅ |
 | [`fl/`](fl/)        | FL | Functional Language (kernel **FLK** + sugar + library) | Ch. 6 | ○ |
 | [`flic/`](flic/)    | FLIC | FL with mutable **cells** | §8.3 | ○ |
 | [`flavar/`](flavar/) | FLAVAR | FL with mutable **variables** | §8.4 | ○ |
