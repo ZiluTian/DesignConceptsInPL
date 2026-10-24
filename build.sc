@@ -23,4 +23,7 @@ object elmm extends DSL {
 object elm extends DSL {
   def moduleDeps = Seq(sexp)
 }
+object fl extends DSL {
+  def moduleDeps = Seq(sexp)
+}
 
