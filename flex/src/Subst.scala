@@ -64,6 +64,14 @@ object Subst {
                 if (binds.exists(_._1 == tau)) target
                 else TDletrec(binds.map { case (n, d) => (n, goType(repl, tau, d, shadowed)) },
                               goType(repl, tau, body, shadowed))
+            // FLEX/SPDK kind-annotated forms (Section 12.3.2): same shadowing
+            // as their unkinded counterparts.
+            case TForallK(binds, body) =>
+                if (binds.exists(_._1 == tau)) target
+                else TForallK(binds, goType(repl, tau, body, shadowed ++ binds.map(_._1).toSet))
+            case TDabsK(binds, body) =>
+                if (binds.exists(_._1 == tau)) target
+                else TDabsK(binds, goType(repl, tau, body, shadowed ++ binds.map(_._1).toSet))
         }
 
     // Simultaneous type substitution [T1/tau1, ..., Tn/taun]Type, used by
@@ -108,6 +116,13 @@ object Subst {
         case TDletrec(binds, body) =>
             val sh = shadowed ++ binds.map(_._1).toSet
             TDletrec(binds.map { case (n, d) => (n, goSim(bs, d, sh)) }, goSim(bs, body, sh))
+        // FLEX/SPDK kind-annotated forms (Section 12.3.2).
+        case TForallK(binds, body) =>
+            val sh = shadowed ++ binds.map(_._1).toSet
+            TForallK(binds, goSim(bs, body, sh))
+        case TDabsK(binds, body) =>
+            val sh = shadowed ++ binds.map(_._1).toSet
+            TDabsK(binds, goSim(bs, body, sh))
     }
 
     // ------------------------------------------------------------------
@@ -250,5 +265,13 @@ object Subst {
             val sh = shadowed ++ binds.map(_._1).toSet
             TDletrec(binds.map { case (n, d) => (n, goRename(d, renames, sh)) },
                      goRename(body, renames, sh))
+        // FLEX/SPDK kind-annotated forms (Section 12.3.2): binders protect
+        // their names, as the unkinded binders do.
+        case TForallK(binds, body) =>
+            val sh = shadowed ++ binds.map(_._1).toSet
+            TForallK(binds, goRename(body, renames, sh))
+        case TDabsK(binds, body) =>
+            val sh = shadowed ++ binds.map(_._1).toSet
+            TDabsK(binds, goRename(body, renames, sh))
     }
 }

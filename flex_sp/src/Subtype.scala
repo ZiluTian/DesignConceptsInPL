@@ -113,6 +113,19 @@ object Subtype {
                 val r2 = vs2.zip(fns).toMap
                 sub(CT(Subst.renameType(b1, r1), p.env),
                     CT(Subst.renameType(b2, r2), q.env), AS)
+            case (TForallK(bs1, b1), TForallK(bs2, b2)) if bs1.size == bs2.size =>
+                // [forall-≤] with kind annotations (Section 12.3.2 of the
+                // book): the corresponding binder kinds must agree (kind
+                // equality is structural), then the bodies are compared with
+                // the same fresh rigid type variables, as above.
+                if (!bs1.zip(bs2).forall { case ((_, k1), (_, k2)) => k1 == k2 }) false
+                else {
+                    val fns = bs1.indices.map(_ => CT.freshName("pv")).toList
+                    val r1 = bs1.map(_._1).zip(fns).toMap
+                    val r2 = bs2.map(_._1).zip(fns).toMap
+                    sub(CT(Subst.renameType(b1, r1), p.env),
+                        CT(Subst.renameType(b2, r2), q.env), AS)
+                }
             case _ => false
         }
 }

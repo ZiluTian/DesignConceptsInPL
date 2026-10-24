@@ -39,6 +39,37 @@ final case class TTrec(name: String, body: T) extends T
 final case class TTletrec(bindings: List[(String, T)], body: T) extends T
 final case class TForall(vars: List[String], body: T) extends T       // (forall (τ*) T)
 
+// FLEX/SPDK kinds (Section 12.3.2 of the book, Figure 12.21):
+//
+//   K ::= type | (->> (Karg*) Kresult)
+//
+// `type` is the base kind: the kind of descriptions that denote types.
+// `(->> (Karg*) Kresult)` is the kind of a description operator (type
+// constructor): it takes descriptions of kinds Karg* and yields a
+// description of kind Kresult. The double arrow ->> distinguishes the kind
+// level from the type level (whose arrow is ->). There are no kind variables
+// in the surface syntax (kind-level recursion would be required for the
+// book's looping description, Exercise 12.24), so kind equality is
+// structural.
+sealed trait Kind
+final case object KType extends Kind
+final case class KArrow(args: List[Kind], result: Kind) extends Kind
+
+object Kind {
+    def show(k: Kind): String = k match {
+        case KType => "type"
+        case KArrow(args, ret) =>
+            "(->> (" + args.map(show).mkString(" ") + ") " + show(ret) + ")"
+    }
+}
+
+// FLEX/SPDK description forms with kind-annotated binders (Section 12.3.2,
+// Figure 12.21): a kind annotation is required on every description
+// identifier declared in pabs, forall, and dabs. (dletrec needs no kind
+// annotations: its bound identifiers are required to be of kind type.)
+final case class TForallK(binds: List[(String, Kind)], body: T) extends T // (forall ((δ K)*) D)
+final case class TDabsK(binds: List[(String, Kind)], body: T) extends T   // (dabs ((δ K)*) D)
+
 // FLEX/SPD description forms (Section 12.3.1 of the book). Descriptions
 // generalize types: in addition to the type forms above, a description can be
 // a base type constructor (cellof / seqof), an abstraction over descriptions
@@ -185,6 +216,16 @@ object T {
                 if (vars.toSet.size != vars.size)
                     Some(s"duplicate type variable in forall: " + vars.diff(vars.distinct).mkString(", "))
                 else go(body, binders ++ vars.toSet)
+            case TForallK(binds, body) =>
+                val names = binds.map(_._1)
+                if (names.toSet.size != names.size)
+                    Some(s"duplicate type variable in forall: " + names.diff(names.distinct).mkString(", "))
+                else go(body, binders ++ names.toSet)
+            case TDabsK(binds, body) =>
+                val names = binds.map(_._1)
+                if (names.toSet.size != names.size)
+                    Some(s"duplicate description variable in dabs: " + names.diff(names.distinct).mkString(", "))
+                else go(body, binders ++ names.toSet)
             // FLEX/SPD description forms (Section 12.3.1): a description is
             // well formed when all of its free description identifiers are
             // bound by an enclosing dabs / dletrec / forall (or in `outer`).
@@ -225,6 +266,11 @@ object T {
             "(tletrec (" + binds.map { case (n, d) => s"($n ${show(d)})" }.mkString(" ") + ") " + show(body) + ")"
         case TForall(vars, body) =>
             "(forall (" + vars.mkString(" ") + ") " + show(body) + ")"
+        // FLEX/SPDK kind-annotated forms (Section 12.3.2).
+        case TForallK(binds, body) =>
+            "(forall (" + binds.map { case (n, k) => n + " " + Kind.show(k) }.mkString(" ") + ") " + show(body) + ")"
+        case TDabsK(binds, body) =>
+            "(dabs (" + binds.map { case (n, k) => n + " " + Kind.show(k) }.mkString(" ") + ") " + show(body) + ")"
         // FLEX/SPD description forms (Section 12.3.1).
         case TBaseCtor(name) => name
         case TDabs(vars, body) =>
@@ -335,6 +381,19 @@ object CT {
                 val r2 = vs2.zip(fns).toMap
                 cmp(CT(Subst.renameType(b1, r1), p1.env),
                     CT(Subst.renameType(b2, r2), p2.env), AS)
+            case (TForallK(bs1, b1), TForallK(bs2, b2)) if bs1.size == bs2.size =>
+                // [forall-approx] with kind annotations (Section 12.3.2):
+                // the corresponding binder kinds must agree (kind equality is
+                // structural), then the bodies are compared with the same
+                // fresh rigid type variables.
+                if (!bs1.zip(bs2).forall { case ((_, k1), (_, k2)) => k1 == k2 }) false
+                else {
+                    val fns = bs1.indices.map(_ => freshName("fv")).toList
+                    val r1 = bs1.map(_._1).zip(fns).toMap
+                    val r2 = bs2.map(_._1).zip(fns).toMap
+                    cmp(CT(Subst.renameType(b1, r1), p1.env),
+                        CT(Subst.renameType(b2, r2), p2.env), AS)
+                }
             case _ => false
         }
 
@@ -420,6 +479,15 @@ object CT {
     def asForall(p: CT): Option[(List[String], CT)] =
         concrete(p) flatMap { c => c.t match {
             case TForall(vs, body) => Some((vs, CT(body, c.env)))
+            case _ => None
+        } }
+
+    // "Is this type, possibly behind recursive indirections, a kind-annotated
+    // forall (FLEX/SPDK, Section 12.3.2)?" Returns the kind-annotated
+    // binders; the body is a CT in which those names occur free.
+    def asForallK(p: CT): Option[(List[(String, Kind)], CT)] =
+        concrete(p) flatMap { c => c.t match {
+            case TForallK(bs, body) => Some((bs, CT(body, c.env)))
             case _ => None
         } }
 

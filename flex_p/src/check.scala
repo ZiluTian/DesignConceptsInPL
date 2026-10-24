@@ -754,6 +754,9 @@ object PolyChecker {
         case TDApp(rator, args) => freeTypeIds(rator) ++ args.flatMap(freeTypeIds).toSet
         case TDletrec(binds, body) =>
             (binds.flatMap { case (_, d) => freeTypeIds(d) }.toSet ++ freeTypeIds(body)) -- binds.map(_._1)
+        // FLEX/SPDK kind-annotated forms (Section 12.3.2).
+        case TForallK(binds, body) => freeTypeIds(body) -- binds.map(_._1)
+        case TDabsK(binds, body) => freeTypeIds(body) -- binds.map(_._1)
     }
 
     // Does the expression contain a mutation (set! or :=)? (The purity

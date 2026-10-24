@@ -155,6 +155,9 @@ object DescEval {
             cur match {
                 case TBaseCtor(name) => return Some(Op.Ctor(name))
                 case TDabs(vars, body) => return Some(Op.Dabs(vars, body))
+                // A kind-annotated dabs (FLEX/SPDK) normalizes exactly like
+                // an unkinded one (kinds are irrelevant to normalization).
+                case TDabsK(vars, body) => return Some(Op.Dabs(vars.map(_._1), body))
                 // A variable in scope is a variable, not an operator.
                 case TVar(n) if bound.contains(n) => return None
                 case TVar(n) =>
@@ -214,6 +217,10 @@ object DescEval {
             // same-named description alias); the body is normalized with
             // them in the bound set, so they are left as rigid variables.
             normalize(body, env, bound ++ vars.toSet) map (b => TForall(vars, b))
+        // FLEX/SPDK kind-annotated forall: the kind annotations are
+        // preserved; the binder names shadow aliases exactly as above.
+        case TForallK(binds, body) =>
+            normalize(body, env, bound ++ binds.map(_._1).toSet) map (b => TForallK(binds, b))
         // A recursive description: convert to type-level recursion, with the
         // bound names treated as recursive type identifiers (locally bound,
         // not followed as aliases) — the description analogue of the
@@ -227,6 +234,7 @@ object DescEval {
         // A description that does not denote a type.
         case TBaseCtor(_) => None
         case TDabs(_, _) => None
+        case TDabsK(_, _) => None
     }
 
     private def all[A](oas: List[Option[A]]): Option[List[A]] =
