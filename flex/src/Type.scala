@@ -37,66 +37,98 @@ final case class TList(elem: T) extends T
 final case class TCell(elem: T) extends T
 final case class TTrec(name: String, body: T) extends T
 final case class TTletrec(bindings: List[(String, T)], body: T) extends T
+final case class TForall(vars: List[String], body: T) extends T       // (forall (τ*) T)
 
 object T {
 
     val BaseTypeNames: Set[String] = Set("unit", "int", "bool", "symb")
     val TypeKeywords: Set[String] = BaseTypeNames ++
-        Set("->", "cellof", "listof", "oneof", "pairof", "prodof", "recordof",
-            "seqof", "tletrec", "trec")
+        Set("->", "cellof", "forall", "listof", "oneof", "pairof", "prodof",
+            "recordof", "seqof", "tletrec", "trec")
 
     // ------------------------------------------------------------------
     // Parsing (raw s-expression tree -> type)
     // ------------------------------------------------------------------
 
-    def parse(raw: Raw): Option[T] = raw match {
+    def parse(raw: Raw): Option[T] = parse(raw, allowForall = false)
+
+    // As parse, but also accepting the (forall (τ*) T) form (FLEX/SP,
+    // Figure 12.9 of the book). FLEX itself stays forall-free: the plain
+    // parse rejects the forall form everywhere it occurs.
+    def parseForall(raw: Raw): Option[T] = parse(raw, allowForall = true)
+
+    private def parse(raw: Raw, allowForall: Boolean): Option[T] = raw match {
         case RawAtom(a) =>
             if (BaseTypeNames.contains(a)) Some(TBase(a))
             else if (TypeKeywords.contains(a)) None // a keyword is not a type identifier
             else Some(TVar(a))
         case RawList(items) => items match {
             case List(RawAtom("->"), argsRaw, retRaw) =>
-                parseTypeList(argsRaw) flatMap { args => parse(retRaw) map (ret => TArrow(args, ret)) }
+                parseTypeList(argsRaw, allowForall) flatMap { args =>
+                    parse(retRaw, allowForall) map (ret => TArrow(args, ret)) }
             case List(RawAtom("pairof"), t1, t2) =>
-                both(parse(t1), parse(t2)) (TPair(_, _))
+                both(parse(t1, allowForall), parse(t2, allowForall)) (TPair(_, _))
             case List(RawAtom("prodof"), ts @ _*) =>
-                all(ts.toList.map(parse)) (cs => TProd(cs))
-            case List(RawAtom("seqof"), t) => parse(t) map (x => TSeq(x))
-            case List(RawAtom("listof"), t) => parse(t) map (x => TList(x))
-            case List(RawAtom("cellof"), t) => parse(t) map (x => TCell(x))
+                all(ts.toList.map(t => parse(t, allowForall))) (cs => TProd(cs))
+            case List(RawAtom("seqof"), t) => parse(t, allowForall) map (x => TSeq(x))
+            case List(RawAtom("listof"), t) => parse(t, allowForall) map (x => TList(x))
+            case List(RawAtom("cellof"), t) => parse(t, allowForall) map (x => TCell(x))
             case List(RawAtom("recordof"), assocs @ _*) =>
-                parseAssocs(assocs.toList) map (fs => TRecord(fs))
+                parseAssocs(assocs.toList, allowForall) map (fs => TRecord(fs))
             case List(RawAtom("oneof"), assocs @ _*) =>
-                parseAssocs(assocs.toList) map (ts => TOneof(ts))
+                parseAssocs(assocs.toList, allowForall) map (ts => TOneof(ts))
             case List(RawAtom("trec"), RawAtom(name), body) =>
                 if (TypeKeywords.contains(name)) None
-                else parse(body) map (b => TTrec(name, b))
+                else parse(body, allowForall) map (b => TTrec(name, b))
             case List(RawAtom("tletrec"), bindsRaw, body) =>
-                parseBindings(bindsRaw) flatMap { bs => parse(body) map (b => TTletrec(bs, b)) }
+                parseBindings(bindsRaw, allowForall) flatMap { bs =>
+                    parse(body, allowForall) map (b => TTletrec(bs, b)) }
+            case List(RawAtom("forall"), varsRaw, bodyRaw) if allowForall =>
+                parseForallVars(varsRaw) flatMap { vs =>
+                    parse(bodyRaw, allowForall) map (b => TForall(vs, b)) }
             case _ => None
         }
     }
 
+    // (τ1 ... τn) — a nonempty, duplicate-free list of type identifiers,
+    // for the (forall (τ*) T) form (Figure 12.9).
+    private def parseForallVars(raw: Raw): Option[List[String]] = raw match {
+        case RawList(items) if items.nonEmpty =>
+            val vs: List[Option[String]] = items.map {
+                case RawAtom(n) if !TypeKeywords.contains(n) => Some(n)
+                case _ => None
+            }
+            if (vs.exists(_.isEmpty) || vs.map(_.get).toSet.size != vs.size) None
+            else Some(vs.map(_.get))
+        case _ => None
+    }
+
     // ((T1 T2 ...) ) -> List[T1, T2, ...]
-    def parseTypeList(raw: Raw): Option[List[T]] = raw match {
-        case RawList(items) => all(items.map(parse)) (identity)
+    def parseTypeList(raw: Raw): Option[List[T]] = parseTypeList(raw, allowForall = false)
+    private def parseTypeList(raw: Raw, allowForall: Boolean): Option[List[T]] = raw match {
+        case RawList(items) => all(items.map(t => parse(t, allowForall))) (identity)
         case _ => None
     }
 
     // ((I1 T1) ... (In Tn)) -> List((I1, T1), ..., (In, Tn))
     def parseAssocs(raws: List[Raw]): Option[List[(String, T)]] =
+        parseAssocs(raws, allowForall = false)
+    private def parseAssocs(raws: List[Raw], allowForall: Boolean): Option[List[(String, T)]] =
         all(raws.map {
             case RawList(List(RawAtom(n), tRaw)) =>
-                if (TypeKeywords.contains(n)) None else parse(tRaw) map (n -> _)
+                if (TypeKeywords.contains(n)) None
+                else parse(tRaw, allowForall) map (n -> _)
             case _ => None
         }) (identity)
 
     // ((τ1 T1) ... (τn Tn)) -> List((τ1, T1), ...)
-    def parseBindings(raw: Raw): Option[List[(String, T)]] = raw match {
+    def parseBindings(raw: Raw): Option[List[(String, T)]] =
+        parseBindings(raw, allowForall = false)
+    private def parseBindings(raw: Raw, allowForall: Boolean): Option[List[(String, T)]] = raw match {
         case RawList(items) =>
             all(items.map {
                 case RawList(List(RawAtom(n), tRaw)) =>
-                    if (TypeKeywords.contains(n)) None else parse(tRaw) map (n -> _)
+                    if (TypeKeywords.contains(n)) None else parse(tRaw, allowForall) map (n -> _)
                 case _ => None
             }) (identity)
         case _ => None
@@ -135,6 +167,10 @@ object T {
             case TTletrec(binds, body) =>
                 val bs = binders ++ binds.map(_._1).toSet
                 firstErr(binds.map { case (_, d) => go(d, bs) } :+ go(body, bs))
+            case TForall(vars, body) =>
+                if (vars.toSet.size != vars.size)
+                    Some(s"duplicate type variable in forall: " + vars.diff(vars.distinct).mkString(", "))
+                else go(body, binders ++ vars.toSet)
         }
         go(t, Set.empty)
     }
@@ -157,6 +193,8 @@ object T {
         case TTrec(name, body) => "(trec " + name + " " + show(body) + ")"
         case TTletrec(binds, body) =>
             "(tletrec (" + binds.map { case (n, d) => s"($n ${show(d)})" }.mkString(" ") + ") " + show(body) + ")"
+        case TForall(vars, body) =>
+            "(forall (" + vars.mkString(" ") + ") " + show(body) + ")"
     }
 }
 
@@ -243,6 +281,15 @@ object CT {
             case (TOneof(f1), TOneof(f2)) => fieldsEquiv(f1, f2, p1.env, p2.env, AS)
             case (TList(e1), TList(e2)) => cmp(CT(e1, p1.env), CT(e2, p2.env), AS)
             case (TCell(e1), TCell(e2)) => cmp(CT(e1, p1.env), CT(e2, p2.env), AS)
+            case (TForall(vs1, b1), TForall(vs2, b2)) if vs1.size == vs2.size =>
+                // [forall-approx] / alpha-equivalence: instantiate both
+                // sides' variables with the same fresh type variables, then
+                // compare the instantiated bodies (the variables are rigid).
+                val fns = vs1.indices.map(_ => freshName("fv")).toList
+                val r1 = vs1.zip(fns).toMap
+                val r2 = vs2.zip(fns).toMap
+                cmp(CT(Subst.renameType(b1, r1), p1.env),
+                    CT(Subst.renameType(b2, r2), p2.env), AS)
             case _ => false
         }
 
@@ -321,6 +368,16 @@ object CT {
             case _ => None
         } }
 
+    // "Is this type, possibly behind recursive indirections, a forall?" The
+    // forall's variables are not environment keys (a pabs-bound type variable
+    // never enters CT.env), so they are returned as plain names; the body is
+    // a CT in which those names occur free.
+    def asForall(p: CT): Option[(List[String], CT)] =
+        concrete(p) flatMap { c => c.t match {
+            case TForall(vs, body) => Some((vs, CT(body, c.env)))
+            case _ => None
+        } }
+
     // ------------------------------------------------------------------
     // Environment-clash renaming: when composing types (e.g. building the
     // arrow type of an abs from its parameter types and its body type), the
@@ -335,6 +392,13 @@ object CT {
         nameCounter += 1
         s"@@$name$nameCounter"
     }
+
+    // A fresh type-identifier name, guaranteed distinct from every name
+    // ever generated (the counter is monotonically increasing) and, with
+    // overwhelming probability, from every user-written identifier (the
+    // "@@" prefix). Used for alpha-renaming where a name must not collide
+    // with any free or bound identifier of the types being compared.
+    def freshName(prefix: String): String = freshType(prefix)
 
     def renameEnv(ct: CT, avoid: Set[String]): CT = {
         val renames: Map[String, String] =

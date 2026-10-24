@@ -17,6 +17,12 @@ object Subst {
     def substType(repl: T, tau: String, target: T): T =
         goType(repl, tau, target, Set.empty)
 
+    // As substType, but with a set of type identifiers that are locally
+    // bound (e.g. by an enclosing pabs in FLEX/SP) and therefore must not
+    // be substituted.
+    def substType(repl: T, tau: String, target: T, shadowed: Set[String]): T =
+        goType(repl, tau, target, shadowed)
+
     private def goType(repl: T, tau: String, target: T, shadowed: Set[String]): T =
         target match {
             case TVar(n) => if (!shadowed.contains(n) && n == tau) repl else target
@@ -40,12 +46,22 @@ object Subst {
                 if (binds.exists(_._1 == tau)) target
                 else TTletrec(binds.map { case (n, d) => (n, goType(repl, tau, d, shadowed)) },
                               goType(repl, tau, body, shadowed))
+            case TForall(vars, body) =>
+                // A forall binding tau shadows every occurrence of tau in its body.
+                if (vars.contains(tau)) target
+                else TForall(vars, goType(repl, tau, body, shadowed ++ vars.toSet))
         }
 
     // Simultaneous type substitution [T1/tau1, ..., Tn/taun]Type, used by
     // the (let-type ((tau T)*) T) sugar.
     def substSim(binds: List[(String, T)], target: T): T =
         goSim(binds.toMap, target, Set.empty)
+
+    // As substSim, but with a set of type identifiers that are locally
+    // bound (e.g. by an enclosing pabs in FLEX/SP) and therefore must not
+    // be substituted.
+    def substSim(binds: List[(String, T)], target: T, shadowed: Set[String]): T =
+        goSim(binds.toMap, target, shadowed)
 
     private def goSim(bs: Map[String, T], target: T, shadowed: Set[String]): T = target match {
         case TVar(n) => bs.get(n).filter(_ => !shadowed.contains(n)).getOrElse(target)
@@ -65,6 +81,9 @@ object Subst {
         case TTletrec(binds, body) =>
             val sh = shadowed ++ binds.map(_._1).toSet
             TTletrec(binds.map { case (n, d) => (n, goSim(bs, d, sh)) }, goSim(bs, body, sh))
+        case TForall(vars, body) =>
+            val sh = shadowed ++ vars.toSet
+            TForall(vars, goSim(bs, body, sh))
     }
 
     // ------------------------------------------------------------------
@@ -188,5 +207,11 @@ object Subst {
             val sh = shadowed ++ binds.map(_._1).toSet
             TTletrec(binds.map { case (n, d) => (n, goRename(d, renames, sh)) },
                      goRename(body, renames, sh))
+        case TForall(vars, body) =>
+            // Like the trec/tletrec binders, forall binders are never renamed
+            // by an environment renaming; occurrences in the body that are
+            // bound by the forall are protected by the shadowed set.
+            val sh = shadowed ++ vars.toSet
+            TForall(vars, goRename(body, renames, sh))
     }
 }
