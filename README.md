@@ -35,7 +35,7 @@ Built with [Mill](https://mill.build) (pinned in [`.mill-version`](.mill-version
 | [`flex_p/`](flex_p/) | FLEX/P | FLEX with **polymorphism** | §12.2 | ✅ |
 | [`flex_spd/`](flex_spd/) | FLEX/SPD | FLEX/SP with **descriptions** | §12.3.1 | ✅ |
 | [`flex_spdk/`](flex_spdk/) | FLEX/SPDK | FLEX/SPD with **kinds** | §12.3.2 | ✅ |
-| [`flex_m/`](flex_m/) | FLEX/M | FLEX/SP with **modules** | §15.2 | ○ |
+| [`flex_m/`](flex_m/) | FLEX/M | FLEX/SP with **modules** | §15.2 | ✅ |
 | [`flare/`](flare/)  | FLARE | FL with type **reconstruction** (inference) | §13.2, §13.5 | ○ |
 | [`flare_e/`](flare_e/) | FLARE/E | FLARE with **effects** | §16.2 | ○ |
 | [`flare_v/`](flare_v/) | FLARE/V | FLARE with mutable **variables** | §17.2.2 | ○ |
