@@ -39,6 +39,20 @@ final case class TTrec(name: String, body: T) extends T
 final case class TTletrec(bindings: List[(String, T)], body: T) extends T
 final case class TForall(vars: List[String], body: T) extends T       // (forall (τ*) T)
 
+// FLEX/SPD description forms (Section 12.3.1 of the book). Descriptions
+// generalize types: in addition to the type forms above, a description can be
+// a base type constructor (cellof / seqof), an abstraction over descriptions
+// (dabs), an application of a description operator, or a (mutually) recursive
+// description (dletrec, the description analogue of tletrec; its sugar is
+// drec). These forms are produced only by the FLEX/SPD parser (flex_spd) and
+// normalized away by the FLEX/SPD checker; the other FLEX-family modules never
+// encounter them (their matchers either carry a catch-all or the
+// description-aware cases added below).
+final case class TBaseCtor(name: String) extends T                    // cellof | seqof (a 1-arg base type constructor)
+final case class TDabs(vars: List[String], body: T) extends T         // (dabs (δ*) D)
+final case class TDApp(rator: T, args: List[T]) extends T             // (Drator Drand*)
+final case class TDletrec(binds: List[(String, T)], body: T) extends T // (dletrec ((δ D)*) D)
+
 object T {
 
     val BaseTypeNames: Set[String] = Set("unit", "int", "bool", "symb")
@@ -171,6 +185,22 @@ object T {
                 if (vars.toSet.size != vars.size)
                     Some(s"duplicate type variable in forall: " + vars.diff(vars.distinct).mkString(", "))
                 else go(body, binders ++ vars.toSet)
+            // FLEX/SPD description forms (Section 12.3.1): a description is
+            // well formed when all of its free description identifiers are
+            // bound by an enclosing dabs / dletrec / forall (or in `outer`).
+            // A description need not denote a *type* (that is a semantic
+            // property checked by the FLEX/SPD normalizer), so a base type
+            // constructor or a dabs is well formed on its own.
+            case TBaseCtor(_) => None
+            case TDabs(vars, body) =>
+                if (vars.toSet.size != vars.size)
+                    Some(s"duplicate description variable in dabs: " + vars.diff(vars.distinct).mkString(", "))
+                else go(body, binders ++ vars.toSet)
+            case TDApp(rator, args) =>
+                firstErr(go(rator, binders) :: args.map(go(_, binders)))
+            case TDletrec(binds, body) =>
+                val bs = binders ++ binds.map(_._1).toSet
+                firstErr(binds.map { case (_, d) => go(d, bs) } :+ go(body, bs))
         }
         go(t, Set.empty)
     }
@@ -195,6 +225,14 @@ object T {
             "(tletrec (" + binds.map { case (n, d) => s"($n ${show(d)})" }.mkString(" ") + ") " + show(body) + ")"
         case TForall(vars, body) =>
             "(forall (" + vars.mkString(" ") + ") " + show(body) + ")"
+        // FLEX/SPD description forms (Section 12.3.1).
+        case TBaseCtor(name) => name
+        case TDabs(vars, body) =>
+            "(dabs (" + vars.mkString(" ") + ") " + show(body) + ")"
+        case TDApp(rator, args) =>
+            "(" + show(rator) + (if (args.isEmpty) "" else " " + args.map(show).mkString(" ")) + ")"
+        case TDletrec(binds, body) =>
+            "(dletrec (" + binds.map { case (n, d) => s"($n ${show(d)})" }.mkString(" ") + ") " + show(body) + ")"
     }
 }
 
@@ -231,6 +269,12 @@ object CT {
         case TTrec(name, body) => CT(body, p.env.updated(name, p.t))
         case TTletrec(bindings, body) =>
             CT(body, p.env ++ bindings.map { case (n, d) => n -> d }.toMap)
+        // A recursive description (dletrec) unwinds like a tletrec: expose the
+        // body with the bound descriptions exposed in the environment. (In
+        // practice the FLEX/SPD checker normalizes descriptions to types
+        // before a CT walk, so this case is rarely reached.)
+        case TDletrec(bindings, body) =>
+            CT(body, p.env ++ bindings.map { case (n, d) => n -> d }.toMap)
         case _ => p
     }
 
@@ -238,6 +282,7 @@ object CT {
         case TVar(n) => p.env.contains(n)
         case TTrec(_, _) => true
         case TTletrec(_, _) => true
+        case TDletrec(_, _) => true
         case _ => false
     }
 

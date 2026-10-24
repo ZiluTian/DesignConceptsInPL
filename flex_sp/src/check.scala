@@ -749,6 +749,12 @@ object SubtypeChecker {
         case TTletrec(binds, body) =>
             (binds.flatMap { case (_, d) => freeTypeIds(d) }.toSet ++ freeTypeIds(body)) -- binds.map(_._1)
         case TForall(vars, body) => freeTypeIds(body) -- vars
+        // FLEX/SPD description forms (Section 12.3.1).
+        case TBaseCtor(_) => Set.empty
+        case TDabs(vars, body) => freeTypeIds(body) -- vars
+        case TDApp(rator, args) => freeTypeIds(rator) ++ args.flatMap(freeTypeIds).toSet
+        case TDletrec(binds, body) =>
+            (binds.flatMap { case (_, d) => freeTypeIds(d) }.toSet ++ freeTypeIds(body)) -- binds.map(_._1)
     }
 
     // Does the expression contain a mutation (set! or :=)? (The purity

@@ -50,6 +50,20 @@ object Subst {
                 // A forall binding tau shadows every occurrence of tau in its body.
                 if (vars.contains(tau)) target
                 else TForall(vars, goType(repl, tau, body, shadowed ++ vars.toSet))
+            // FLEX/SPD description forms (Section 12.3.1): substitution into a
+            // description respects its binders (a dabs / dletrec binding
+            // shadows tau in its body), and a base type constructor is atomic.
+            case TBaseCtor(_) => target
+            case TDabs(vars, body) =>
+                if (vars.contains(tau)) target
+                else TDabs(vars, goType(repl, tau, body, shadowed ++ vars.toSet))
+            case TDApp(rator, args) =>
+                TDApp(goType(repl, tau, rator, shadowed),
+                      args.map(goType(repl, tau, _, shadowed)))
+            case TDletrec(binds, body) =>
+                if (binds.exists(_._1 == tau)) target
+                else TDletrec(binds.map { case (n, d) => (n, goType(repl, tau, d, shadowed)) },
+                              goType(repl, tau, body, shadowed))
         }
 
     // Simultaneous type substitution [T1/tau1, ..., Tn/taun]Type, used by
@@ -84,6 +98,16 @@ object Subst {
         case TForall(vars, body) =>
             val sh = shadowed ++ vars.toSet
             TForall(vars, goSim(bs, body, sh))
+        // FLEX/SPD description forms (Section 12.3.1).
+        case TBaseCtor(_) => target
+        case TDabs(vars, body) =>
+            val sh = shadowed ++ vars.toSet
+            TDabs(vars, goSim(bs, body, sh))
+        case TDApp(rator, args) =>
+            TDApp(goSim(bs, rator, shadowed), args.map(goSim(bs, _, shadowed)))
+        case TDletrec(binds, body) =>
+            val sh = shadowed ++ binds.map(_._1).toSet
+            TDletrec(binds.map { case (n, d) => (n, goSim(bs, d, sh)) }, goSim(bs, body, sh))
     }
 
     // ------------------------------------------------------------------
@@ -213,5 +237,18 @@ object Subst {
             // bound by the forall are protected by the shadowed set.
             val sh = shadowed ++ vars.toSet
             TForall(vars, goRename(body, renames, sh))
+        // FLEX/SPD description forms (Section 12.3.1): dabs / dletrec binders
+        // protect their bound names, as the type binders do.
+        case TBaseCtor(_) => t
+        case TDabs(vars, body) =>
+            val sh = shadowed ++ vars.toSet
+            TDabs(vars, goRename(body, renames, sh))
+        case TDApp(rator, args) =>
+            TDApp(goRename(rator, renames, shadowed),
+                  args.map(goRename(_, renames, shadowed)))
+        case TDletrec(binds, body) =>
+            val sh = shadowed ++ binds.map(_._1).toSet
+            TDletrec(binds.map { case (n, d) => (n, goRename(d, renames, sh)) },
+                     goRename(body, renames, sh))
     }
 }
