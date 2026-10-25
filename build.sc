@@ -62,4 +62,7 @@ object flare extends DSL {
 object flare_e extends DSL {
   def moduleDeps = Seq(sexp, fl, flex, flare)
 }
+object flare_v extends DSL {
+  def moduleDeps = Seq(sexp, fl, flex, flare)
+}
 
