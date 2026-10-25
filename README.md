@@ -49,6 +49,80 @@ core functional language and its state/object‑oriented extensions (`fl`,
 (`flex` family), a type‑inference core and its extensions (`flare` family), and
 finally a compilation intermediate language (`fil`).
 
+## Family map
+
+How the 20 languages link together — each arrow is the feature the child
+adds on top of its parent (the book's own progression):
+
+```mermaid
+flowchart TD
+    subgraph found ["Ch. 1-2 — foundations"]
+        postfix["PostFix<br/>§1.4 · simple stack language"]
+        sexp["S-Expression<br/>Ch. 2 · s-expr AST + parser"]
+    end
+
+    subgraph elfam ["The EL family — Ch. 2-4, semantics in stages"]
+        elmm["ELMM<br/>§3.2.6 · EL Minus Minus"]
+        elm["ELM<br/>§3.2.5 · EL Minus"]
+        el["EL<br/>§2.1 · expression language"]
+    end
+
+    fl["FL<br/>Ch. 6 · functional core (FLK + sugar)"]
+
+    subgraph statfam ["Stateful & object-oriented — Ch. 7-8"]
+        hooPla["HOOPLA<br/>§7.3 · humble object-oriented PL (HOOK)"]
+        flic["FLIC<br/>§8.3 · mutable cells"]
+        flavar["FLAVAR<br/>§8.4 · mutable variables"]
+    end
+
+    subgraph flexfam ["Typed core — FLEX, Ch. 11-12, 15"]
+        flex["FLEX<br/>§11.4 · explicit types + checker"]
+        flex_s["FLEX/S<br/>§12.1 · subtyping"]
+        flex_p["FLEX/P<br/>§12.2 · polymorphism"]
+        flex_sp["FLEX/SP<br/>§12.2 · subtyping + polymorphism"]
+        flex_spd["FLEX/SPD<br/>§12.3.1 · descriptions"]
+        flex_spdk["FLEX/SPDK<br/>§12.3.2 · kinds"]
+        flex_m["FLEX/M<br/>§15.2 · modules"]
+    end
+
+    subgraph flarefam ["Inferred types — FLARE, Ch. 13, 16-17"]
+        flare["FLARE<br/>§13.2 · type reconstruction"]
+        flare_e["FLARE/E<br/>§16.2 · effects"]
+        flare_v["FLARE/V<br/>§17.2.2 · mutable variables"]
+    end
+
+    fil["FIL<br/>§17.7 · compilation intermediate language"]
+
+    sexp --> elmm
+    elmm -->|"+ program inputs (arg N)"| elm
+    elm -->|"+ booleans & if"| el
+    sexp --> fl
+    fl -->|"+ object orientation"| hooPla
+    fl -->|"+ mutable cells"| flic
+    fl -->|"+ set! variables"| flavar
+    fl -->|"+ explicit types"| flex
+    flex -->|"+ subtyping"| flex_s
+    flex -->|"+ polymorphism"| flex_p
+    flex_s -->|"+ polymorphism"| flex_sp
+    flex_p -->|"+ subtyping"| flex_sp
+    flex_sp -->|"+ descriptions"| flex_spd
+    flex_spd -->|"+ kinds"| flex_spdk
+    flex_sp -->|"+ modules"| flex_m
+    fl -->|"+ inferred types"| flare
+    flex -.->|"type domain"| flare
+    flare -->|"+ effects"| flare_e
+    flare -->|"+ set! variables"| flare_v
+    flare_v -->|"Texp translation (Fig 17.16)"| fil
+```
+
+Solid arrows are the conceptual progression; the dashed arrow marks
+machinery *reused* from a sibling branch (FLARE adopts FLEX's type domain).
+`postfix` is standalone (§1.4), and `fil` is a target rather than a family
+member: the stateful FLARE family is translated *into* it (Fig 17.16).
+Code‑level module dependencies in [`build.sc`](build.sc) follow this shape —
+a few siblings also reuse each other's code (`flex_p` builds on `flex_sp`,
+`flavar` on `flic`, `flare` on `flex`) without changing the conceptual links.
+
 ## Repository layout
 
 Each language is a self‑contained [Mill](https://mill.build) module:
