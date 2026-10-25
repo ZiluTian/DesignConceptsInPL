@@ -16,6 +16,17 @@ a ScalaTest suite.
 
 Built with [Mill](https://mill.build) (pinned in [`.mill-version`](.mill-version)).
 
+## Video series
+
+Every language in this family has a companion explainer video — narrated
+scene-based motion graphics, in book order:
+
+- [Design Concepts in Programming Language — series playlist](https://www.youtube.com/playlist?list=PLen6BVcPTERw)
+- [YouTube channel](https://www.youtube.com/@rubytian7501)
+
+Each episode's narration and on-screen code were verified against the
+module's implementation and test suite.
+
 ## The language family
 
 | Directory | Language | Role / mnemonic | Defined in the book | Status |
